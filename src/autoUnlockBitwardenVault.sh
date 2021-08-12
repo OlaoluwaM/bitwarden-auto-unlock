@@ -25,7 +25,7 @@ EOF
 
 sessionKey=$(grep -o '".*"' "$rootDir/tmp.txt" | sed 's/"//g' | uniq)
 
-echo "Done ✔️"
-
 rm "$rootDir/tmp.txt"
 export BW_SESSION=$sessionKey
+
+echo "Done ✔️"
