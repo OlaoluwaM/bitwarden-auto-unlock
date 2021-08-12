@@ -12,6 +12,8 @@ if [[ -z "$MASTER_PASSWORD" ]]; then
   [[ -z "$MASTER_PASSWORD" ]] && echo "Script cannot run without bitwarden master password" && exit 1
 fi
 
+echo "Unlocking Your Vault 😉"
+
 expect <(
   cat <<EOF
   spawn bw unlock
@@ -22,6 +24,8 @@ EOF
 ) 2>/dev/null 1>"$rootDir/tmp.txt"
 
 sessionKey=$(grep -o '".*"' "$rootDir/tmp.txt" | sed 's/"//g' | uniq)
-echo $sessionKey
+
+echo "Done ✔️"
+
 rm "$rootDir/tmp.txt"
 export BW_SESSION=$sessionKey
