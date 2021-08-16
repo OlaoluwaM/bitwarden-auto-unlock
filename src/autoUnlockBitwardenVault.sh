@@ -10,7 +10,12 @@ set +o allexport
 if [[ -z "$MASTER_PASSWORD" ]]; then
   read -t 20 -sp 'Bitwarden master password not set in .env, please provide it: ' MASTER_PASSWORD
   [[ -z "$MASTER_PASSWORD" ]] && echo "Script cannot run without bitwarden master password" && exit 1
+
+  [ -f "$rootDir/.env" ] && touch "$rootDir/.env"
+  echo "MASTER_PASSWORD=$MASTER_PASSWORD" >"$rootDir/.env"
 fi
+
+[ -f "$rootDir/tmp.txt" ] && rm "$rootDir/tmp.txt"
 
 echo "Unlocking Your Vault 😉"
 
