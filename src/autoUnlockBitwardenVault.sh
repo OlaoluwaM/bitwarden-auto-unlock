@@ -3,24 +3,24 @@
 rootDir="$(dirname "$(dirname "$0")")"
 envFilePath="$rootDir/.env"
 
-if [[ -f $envFilePath ]]; then
+if [[ ! -f $envFilePath ]]; then
   echo "Script requires and env file"
-  exit 1
+  return
 fi
 
 set -o allexport
-. $envFilePath
+. "$envFilePath"
 set +o allexport
 
-# if [[ -z "$MASTER_PASSWORD" ]]; then
-#   read -t 20 -sp 'Bitwarden master password not set in .env, please provide it: ' MASTER_PASSWORD
-#   [[ -z "$MASTER_PASSWORD" ]] && echo "Script cannot run without bitwarden master password" && exit 1
+# # if [[ -z "$MASTER_PASSWORD" ]]; then
+# #   read -t 20 -sp 'Bitwarden master password not set in .env, please provide it: ' MASTER_PASSWORD
+# #   [[ -z "$MASTER_PASSWORD" ]] && echo "Script cannot run without bitwarden master password" && exit 1
 
-#   [ -f "$rootDir/.env" ] && touch "$rootDir/.env"
-#   echo "MASTER_PASSWORD=$MASTER_PASSWORD" >"$rootDir/.env"
-# fi
+# #   [ -f "$rootDir/.env" ] && touch "$rootDir/.env"
+# #   echo "MASTER_PASSWORD=$MASTER_PASSWORD" >"$rootDir/.env"
+# # fi
 
-[ -f "$rootDir/tmp.txt" ] && rm "$rootDir/tmp.txt"
+# [ -f "$rootDir/tmp.txt" ] && rm "$rootDir/tmp.txt"
 
 echo "Unlocking Your Vault 😉"
 
@@ -36,6 +36,12 @@ EOF
 sessionKey=$(grep -o '".*"' "$rootDir/tmp.txt" | sed 's/"//g' | uniq)
 
 rm "$rootDir/tmp.txt"
+
+if [[ -z $sessionKey ]]; then
+  echo "Seems like you are yet to log into bitwarden"
+  return
+fi
+
 export BW_SESSION=$sessionKey
 
 echo "Done ✔️"
