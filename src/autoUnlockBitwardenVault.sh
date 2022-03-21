@@ -1,28 +1,28 @@
 #!/usr/bin/env bash
 
+command -v bw &>/dev/null || {
+  echo >&2 "This script requires the bitwarden CLI but it's not installed.  Aborting."
+  exit 1
+}
+
 rootDir="$(dirname "$(dirname "$0")")"
 envFilePath="$rootDir/.env"
+tmpFile="$rootDir/tmp.txt"
 
-if [[ ! -f $envFilePath ]]; then
-  echo "Script requires and env file"
-  return
+if [[ -f $envFilePath ]]; then
+  set -o allexport
+  . "$envFilePath"
+  set +o allexport
 fi
 
-set -o allexport
-. "$envFilePath"
-set +o allexport
+if [[ -z "$MASTER_PASSWORD" ]]; then
+  read -srp "$(echo -e 'Bitwarden master password not set in .env, please provide it:\n> ')" MASTER_PASSWORD
 
-# # if [[ -z "$MASTER_PASSWORD" ]]; then
-# #   read -t 20 -sp 'Bitwarden master password not set in .env, please provide it: ' MASTER_PASSWORD
-# #   [[ -z "$MASTER_PASSWORD" ]] && echo "Script cannot run without bitwarden master password" && exit 1
+  [[ -z "$MASTER_PASSWORD" ]] && echo "Script cannot run without bitwarden master password" && exit 1
 
-# #   [ -f "$rootDir/.env" ] && touch "$rootDir/.env"
-# #   echo "MASTER_PASSWORD=$MASTER_PASSWORD" >"$rootDir/.env"
-# # fi
-
-# [ -f "$rootDir/tmp.txt" ] && rm "$rootDir/tmp.txt"
-
-echo "Unlocking Your Vault 😉"
+  [[ ! -f "$envFilePath" ]] && touch "$envFilePath"
+  echo "MASTER_PASSWORD=$MASTER_PASSWORD" >"$envFilePath"
+fi
 
 expect <(
   cat <<EOF
@@ -31,17 +31,16 @@ expect <(
   send "$MASTER_PASSWORD\r"
   interact
 EOF
-) 2>/dev/null 1>"$rootDir/tmp.txt"
+) 2>/dev/null 1>"$tmpFile"
 
-sessionKey=$(grep -o '".*"' "$rootDir/tmp.txt" | sed 's/"//g' | uniq)
-
-rm "$rootDir/tmp.txt"
+sessionKey=$(grep -o '".*"' "$tmpFile" | sed 's/"//g' | uniq)
+rm "$tmpFile"
 
 if [[ -z $sessionKey ]]; then
-  echo "Seems like you are yet to log into bitwarden"
-  return
+  read -rp "$(echo -e '\nPlease enter your Bitwarden account email address:\n> ')" EMAIL
+
+  LOGIN_INFO=$(bw login "$EMAIL" "$MASTER_PASSWORD")
+  sessionKey=$(echo "$LOGIN_INFO" | grep "BW_SESSION" | grep -oP '"\K[^"\047]+(?=["\047])' | uniq)
 fi
 
-export BW_SESSION=$sessionKey
-
-echo "Done ✔️"
+echo "$sessionKey"
